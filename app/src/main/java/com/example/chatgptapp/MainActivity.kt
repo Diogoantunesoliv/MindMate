@@ -45,6 +45,9 @@ fun TelaInicial(onNavigate: () -> Unit) {
         Button(onClick = onNavigate) {
             Text("Conversar com o ChatGPT")
         }
+        Button(onClick = onNavigate) {
+            Text("Diário de Sentimentos")
+        }
     }
 }
 
@@ -57,7 +60,8 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(50.dp),
+
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
