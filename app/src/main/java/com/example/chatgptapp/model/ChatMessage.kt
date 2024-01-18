@@ -1,3 +1,11 @@
 package com.example.chatgptapp.model
 
-data class ChatMessage(val message: String)
+data class Message(
+    val role: String,
+    val content: String
+)
+
+data class ChatRequest(
+    val model: String,
+    val messages: List<Message>
+)
