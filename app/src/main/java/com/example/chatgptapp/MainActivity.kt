@@ -1,18 +1,26 @@
 package com.example.chatgptapp
 
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import android.util.Log
+import androidx.activity.viewModels
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
-import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.chatgptapp.model.ChatRequest
 import com.example.chatgptapp.network.RetrofitInstance
@@ -22,39 +30,168 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import com.example.chatgptapp.model.Message
 import kotlinx.coroutines.withContext
-
 class MainActivity : ComponentActivity() {
+    private val authViewModel by viewModels<AuthViewModel>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
+            var mostrarTelaInicio by remember { mutableStateOf(true) }
             var exibirTelaChatGPT by remember { mutableStateOf(false) }
             var exibirTelaDiario by remember { mutableStateOf(false) }
 
-            if (exibirTelaChatGPT) {
-                TelaChatGPT {
-                    exibirTelaChatGPT = false
-                }
-            } else if (exibirTelaDiario) {
-                TelaDiario {
-                    exibirTelaDiario = false
+            if (mostrarTelaInicio) {
+                TelaInicio(onIniciarClicked = { mostrarTelaInicio = false })
+            } else if (authViewModel.isLoggedIn) {
+                if (exibirTelaChatGPT) {
+                    TelaChatGPT { exibirTelaChatGPT = false }
+                } else if (exibirTelaDiario) {
+                    TelaDiario { exibirTelaDiario = false }
+                } else {
+                    TelaInicialPosLogin(
+                        onNavigateToChatGPT = { exibirTelaChatGPT = true },
+                        onNavigateToDiario = { exibirTelaDiario = true }
+                    )
                 }
             } else {
-                TelaInicial(
-                    onNavigateToChatGPT = {
-                        exibirTelaChatGPT = true
-                    },
-                    onNavigateToDiario = {
-                        exibirTelaDiario = true
-                    }
-                )
+                val authState by authViewModel.authState.collectAsState()
+                when (authState) {
+                    is AuthState.Login -> TelaLogin(authViewModel)
+                    is AuthState.Register -> TelaRegistro(authViewModel)
+                    else -> {}
+                }
             }
         }
     }
 }
 
+@Composable
+fun TelaInicio(onIniciarClicked: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Bem-vindo ao MindMate",
+            style = MaterialTheme.typography.h4,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        Button(
+            onClick = onIniciarClicked,
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
+        ) {
+            Text("Iniciar", color = Color.White)
+        }
+    }
+}
 
 @Composable
-fun TelaInicial(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit) {
+fun TelaLogin(authViewModel: AuthViewModel) {
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "MindMate - Login",
+            style = MaterialTheme.typography.h4,
+            color = Color(0xFF004D40),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        TextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = { authViewModel.login(email, password) },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Login", color = Color.White)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(
+            onClick = { authViewModel.register(email, password) },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
+            modifier = Modifier.fillMaxWidth()
+        ){
+            Text("Registar", color = Color.White)
+        }
+    }
+
+}
+
+@Composable
+fun TelaRegistro(authViewModel: AuthViewModel) {
+    var nome by remember { mutableStateOf("") }
+    var apelido by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = "MindMate - Aplicativo de Suporte Mental",
+            style = MaterialTheme.typography.h4,
+            color = Color(0xFF004D40),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        TextField(
+            value = nome,
+            onValueChange = { nome = it },
+            label = { Text("Nome Proprio") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = apelido,
+            onValueChange = { apelido = it },
+            label = { Text("Nome Proprio") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") }
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") }
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { authViewModel.register(email, password) }) {
+            Text("Registar")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = { authViewModel.login(email, password) }) {
+            Text("Voltar para o login")
+        }
+    }
+}
+
+@Composable
+fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -65,25 +202,25 @@ fun TelaInicial(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit)
         Text(
             text = "MindMate - Aplicativo de Suporte Mental",
             style = MaterialTheme.typography.h4,
+            color = Color(0xFF004D40),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 150.dp)
+            modifier = Modifier.padding(bottom = 32.dp)
         )
-        Text(
-            text = "Transformando Pensamentos em Positividade!",
-            style = MaterialTheme.typography.subtitle1,
-            modifier = Modifier.padding(bottom = 100.dp)
-        )
-
-        Button(onClick = onNavigateToChatGPT) {
-            Text("Conversar com o ChatGPT")
+        Button(
+            onClick = onNavigateToChatGPT,
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
+        ) {
+            Text("Conversar com o ChatGPT", color = Color.White)
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onNavigateToDiario) {
-            Text("O meu Diário")
+        Button(
+            onClick = onNavigateToDiario,
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
+        ) {
+            Text("O meu Diário", color = Color.White)
         }
     }
 }
-
 
 
 @Composable
@@ -108,7 +245,7 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
             modifier = Modifier.padding(16.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp)) //
 
         TextField(
             value = inputText,
