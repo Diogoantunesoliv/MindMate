@@ -17,6 +17,8 @@ import android.util.Log
 import androidx.activity.viewModels
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
@@ -66,7 +68,6 @@ class MainActivity : ComponentActivity() {
                 authState is AuthState.Login -> {
                     TelaLogin(authViewModel)
                 }
-
                 authState is AuthState.Register -> {
                     TelaRegisto(authViewModel)
                 }
@@ -108,6 +109,7 @@ fun TelaLogin(authViewModel: AuthViewModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(top = 32.dp, bottom = 16.dp)
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -203,8 +205,7 @@ fun TelaRegisto(authViewModel: AuthViewModel) {
 fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit, onLogout: () -> Unit) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+            .padding(top = 52.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -247,8 +248,7 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(16.dp)
     ) {
         Spacer(modifier = Modifier.height(150.dp))
 
@@ -333,43 +333,92 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
     }
 }
 
+
 @Composable
 fun TelaDiario(onNavigateBack: () -> Unit) {
-    var entradaDiario by remember { mutableStateOf("") }
+    data class Nota(val titulo: String, val mensagem: String)
+    var titulo by remember { mutableStateOf("") }
+    var mensagem by remember { mutableStateOf("") }
+    var notas by remember { mutableStateOf(listOf<Nota>()) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(16.dp)
     ) {
-        Text(
-            text = "Meu Diário",
-            style = MaterialTheme.typography.h4,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        Spacer(modifier = Modifier.height(50.dp))
-        TextField(
-            value = entradaDiario,
-            onValueChange = { entradaDiario = it },
-            label = { Text("Expressa-te aqui!") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
-        Button(
-            onClick = {
-            },
-            modifier = Modifier.fillMaxWidth()
+        // Elementos fixos
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Top,
+            modifier = Modifier.weight(1f) // Peso para manter no topo
         ) {
-            Text("Guardar")
+            Text(
+                text = "Meu Diário",
+                style = MaterialTheme.typography.h4,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .padding(top = 32.dp, bottom = 16.dp)
+            )
+
+            TextField(
+                value = titulo,
+                onValueChange = { titulo = it },
+                label = { Text("Título") },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            TextField(
+                value = mensagem,
+                onValueChange = { mensagem = it },
+                label = { Text("Expressa-te aqui!") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                textStyle = LocalTextStyle.current.copy(color = Color.Black)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (titulo.isNotEmpty() && mensagem.isNotEmpty() && notas.size < 3) {
+                        notas = notas + Nota(titulo, mensagem)
+                        titulo = ""
+                        mensagem = ""
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Adicionar Nota")
+            }
         }
+
+        // Notas
+        LazyColumn {
+            items(notas) { nota ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    elevation = 4.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(nota.titulo, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(nota.mensagem)
+                    }
+                }
+            }
+        }
+
+        // Botão Voltar
         Button(
             onClick = { onNavigateBack() },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp)
+                .padding(16.dp)
         ) {
             Text("Voltar")
         }
