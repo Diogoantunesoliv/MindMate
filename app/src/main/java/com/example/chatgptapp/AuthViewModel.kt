@@ -27,17 +27,26 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-
-
+    fun navigateToRegister() {
+        _authState.value = AuthState.Register
+    }
+    fun navigateToLogin() {
+        _authState.value = AuthState.Login
+    }
     fun register(email: String, password: String) {
         viewModelScope.launch {
+            // Lógica de registro
             userEmail.value = email
             userPassword.value = password
             _authState.value = AuthState.Login
+            Log.d("AuthViewModel", "Registro concluído")
         }
     }
 
-
+    fun logout() {
+        _authState.value = AuthState.Login
+        Log.d("AuthViewModel", "logout Efetuado")
+    }
 }
 
 sealed class AuthState {

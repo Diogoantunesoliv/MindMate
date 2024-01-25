@@ -30,6 +30,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import com.example.chatgptapp.model.Message
 import kotlinx.coroutines.withContext
+
 class MainActivity : ComponentActivity() {
     private val authViewModel by viewModels<AuthViewModel>()
 
@@ -39,26 +40,35 @@ class MainActivity : ComponentActivity() {
             var mostrarTelaInicio by remember { mutableStateOf(true) }
             var exibirTelaChatGPT by remember { mutableStateOf(false) }
             var exibirTelaDiario by remember { mutableStateOf(false) }
+            val authState by authViewModel.authState.collectAsState()
 
-            if (mostrarTelaInicio) {
-                TelaInicio(onIniciarClicked = { mostrarTelaInicio = false })
-            } else if (authViewModel.isLoggedIn) {
-                if (exibirTelaChatGPT) {
+            LaunchedEffect(authState) {
+                mostrarTelaInicio = authState is AuthState.Login
+            }
+
+            when {
+                mostrarTelaInicio -> {
+                    TelaInicio { mostrarTelaInicio = false }
+                }
+                exibirTelaChatGPT -> {
                     TelaChatGPT { exibirTelaChatGPT = false }
-                } else if (exibirTelaDiario) {
+                }
+                exibirTelaDiario -> {
                     TelaDiario { exibirTelaDiario = false }
-                } else {
+                }
+                authState is AuthState.LoggedIn -> {
                     TelaInicialPosLogin(
                         onNavigateToChatGPT = { exibirTelaChatGPT = true },
-                        onNavigateToDiario = { exibirTelaDiario = true }
+                        onNavigateToDiario = { exibirTelaDiario = true },
+                        onLogout = { authViewModel.logout() }
                     )
                 }
-            } else {
-                val authState by authViewModel.authState.collectAsState()
-                when (authState) {
-                    is AuthState.Login -> TelaLogin(authViewModel)
-                    is AuthState.Register -> TelaRegistro(authViewModel)
-                    else -> {}
+                authState is AuthState.Login -> {
+                    TelaLogin(authViewModel)
+                }
+
+                authState is AuthState.Register -> {
+                    TelaRegisto(authViewModel)
                 }
             }
         }
@@ -129,20 +139,19 @@ fun TelaLogin(authViewModel: AuthViewModel) {
         ) {
             Text("Login", color = Color.White)
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = { authViewModel.register(email, password) },
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { authViewModel.navigateToRegister() },
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
             modifier = Modifier.fillMaxWidth()
         ){
-            Text("Registar", color = Color.White)
+            Text("Ir para Registro", color = Color.White)
         }
     }
 
 }
 
 @Composable
-fun TelaRegistro(authViewModel: AuthViewModel) {
+fun TelaRegisto(authViewModel: AuthViewModel) {
     var nome by remember { mutableStateOf("") }
     var apelido by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -159,13 +168,13 @@ fun TelaRegistro(authViewModel: AuthViewModel) {
         TextField(
             value = nome,
             onValueChange = { nome = it },
-            label = { Text("Nome Proprio") }
+            label = { Text("Nome Próprio") }
         )
         Spacer(modifier = Modifier.height(8.dp))
         TextField(
             value = apelido,
             onValueChange = { apelido = it },
-            label = { Text("Nome Proprio") }
+            label = { Text("Apelido") }
         )
         Spacer(modifier = Modifier.height(8.dp))
         TextField(
@@ -184,14 +193,14 @@ fun TelaRegistro(authViewModel: AuthViewModel) {
             Text("Registar")
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { authViewModel.login(email, password) }) {
-            Text("Voltar para o login")
+        Button(onClick = { authViewModel.navigateToLogin() }) {
+            Text("Voltar Inicio")
         }
     }
 }
 
 @Composable
-fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit) {
+fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit, onLogout: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -218,6 +227,12 @@ fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () 
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
         ) {
             Text("O meu Diário", color = Color.White)
+        }
+        Button(
+            onClick = onLogout, // Utiliza o método de logout passado como parâmetro
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
+        ) {
+            Text("Logout", color = Color.White)
         }
     }
 }
@@ -321,7 +336,6 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
 @Composable
 fun TelaDiario(onNavigateBack: () -> Unit) {
     var entradaDiario by remember { mutableStateOf("") }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -335,9 +349,7 @@ fun TelaDiario(onNavigateBack: () -> Unit) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-
         Spacer(modifier = Modifier.height(50.dp))
-
         TextField(
             value = entradaDiario,
             onValueChange = { entradaDiario = it },
@@ -346,16 +358,13 @@ fun TelaDiario(onNavigateBack: () -> Unit) {
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         )
-
         Button(
             onClick = {
-
             },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Guardar")
         }
-
         Button(
             onClick = { onNavigateBack() },
             modifier = Modifier
