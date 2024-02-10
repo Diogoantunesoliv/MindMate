@@ -31,6 +31,9 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import com.example.chatgptapp.model.Message
+import com.google.firebase.Firebase
+import com.google.firebase.analytics.FirebaseAnalytics
+import com.google.firebase.analytics.analytics
 import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
@@ -50,7 +53,15 @@ class MainActivity : ComponentActivity() {
 
             when {
                 mostrarTelaInicio -> {
-                    TelaInicio { mostrarTelaInicio = false }
+                    TelaInicio {
+                        mostrarTelaInicio = false
+
+                        // Obter a instância do FirebaseAnalytics e registrar o evento
+                        val analytics = FirebaseAnalytics.getInstance(this@MainActivity)
+                        analytics.logEvent("log_botao_clicado", null)
+                    }
+
+
                 }
                 exibirTelaChatGPT -> {
                     TelaChatGPT { exibirTelaChatGPT = false }
