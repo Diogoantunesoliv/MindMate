@@ -1,5 +1,9 @@
 package com.example.chatgptapp.model
 
 data class ChatResponse(
-    val response: String
+    val choices: List<Choice>
+)
+
+data class Choice(
+    val message: Message
 )

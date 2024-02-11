@@ -65,7 +65,7 @@ class AuthViewModel : ViewModel() {
     fun logout() {
         firebaseAuth.signOut()
         _authState.value = AuthState.Login
-        Log.d("AuthViewModel", "Logout efetuado")
+        Log.d("AuthViewModel", "logout Efetuado")
     }
 
 }

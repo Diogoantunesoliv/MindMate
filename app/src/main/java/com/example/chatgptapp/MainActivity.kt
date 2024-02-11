@@ -24,17 +24,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.example.chatgptapp.model.ChatRequest
 import com.example.chatgptapp.network.RetrofitInstance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
-import com.example.chatgptapp.model.Message
-import com.google.firebase.Firebase
 import com.google.firebase.analytics.FirebaseAnalytics
-import com.google.firebase.analytics.analytics
 import kotlinx.coroutines.withContext
+import com.example.chatgptapp.model.createChatRequest
+
 
 class MainActivity : ComponentActivity() {
     private val authViewModel by viewModels<AuthViewModel>()
@@ -202,7 +200,7 @@ fun TelaRegisto(authViewModel: AuthViewModel) {
             label = { Text("Password") }
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { authViewModel.register(email, password) }) {
+        Button(onClick = { authViewModel.register(nome,apelido,email, password) }) {
             Text("Registar")
         }
         Spacer(modifier = Modifier.height(8.dp))
@@ -311,20 +309,20 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
                     try {
                         Log.d("ChatGPTApp", "Fazendo chamada à API")
 
-                        // Criar a requisição com base no inputText
-                        val chatRequest = ChatRequest(
-                            model = "gpt-3.5-turbo",
-                            messages = listOf(
-                                Message(role = "user", content = inputText)
-                            )
-                        )
+                        // Usar a função createChatRequest para criar a requisição com base no inputText
+                        val chatRequest = createChatRequest(inputText)
 
-                        // Fazendo a chamada com a requisição
+                        // Fazer chamada com a requisição
                         val response = RetrofitInstance.api.postMessage(chatRequest).execute()
                         if (response.isSuccessful) {
                             val chatResponse = response.body()
+
+
+                            val firstResponseContent = chatResponse?.choices?.firstOrNull()?.message?.content ?: "Resposta vazia"
+
                             withContext(Dispatchers.Main) {
-                                responseText = chatResponse?.response ?: "Resposta vazia"
+                                responseText = firstResponseContent
+                                inputText = ""
                                 Log.d("ChatGPTApp", "Resposta recebida: $responseText")
                             }
                         } else {
@@ -338,9 +336,10 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
             }) {
                 Text("Enviar")
             }
+
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
     }
 }
 
