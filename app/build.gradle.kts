@@ -7,6 +7,8 @@ plugins {
     id("kotlin-kapt")
     id("kotlin-android")
     id("com.google.gms.google-services")
+    // Add the Performance Monitoring Gradle plugin
+    id("com.google.firebase.firebase-perf")
 }
 
 android {
@@ -96,5 +98,8 @@ dependencies {
     //Implementacação Firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
     implementation("com.google.firebase:firebase-analytics")
+
+    // Import the BoM for the Firebase platform
+    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
 
 }
