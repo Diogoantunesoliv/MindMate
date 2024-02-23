@@ -11,7 +11,6 @@ import androidx.compose.material.Button
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
 import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import android.util.Log
 import androidx.activity.viewModels
@@ -25,13 +24,37 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.chatgptapp.network.RetrofitInstance
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.style.TextAlign
 import com.google.firebase.analytics.FirebaseAnalytics
 import kotlinx.coroutines.withContext
 import com.example.chatgptapp.model.createChatRequest
+import androidx.compose.runtime.Composable
+import kotlinx.coroutines.Dispatchers
+import com.google.firebase.perf.metrics.Trace
+import com.google.firebase.perf.FirebasePerformance
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material.Snackbar
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+
+
 
 
 class MainActivity : ComponentActivity() {
@@ -96,15 +119,30 @@ fun TelaInicio(onIniciarClicked: () -> Unit) {
     ) {
         Text(
             text = "Bem-vindo ao MindMate",
-            style = MaterialTheme.typography.h4,
+            style = androidx.compose.ui.text.TextStyle(
+                fontSize = 33.sp,
+                fontWeight = FontWeight.SemiBold),
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 50.dp)
         )
         Button(
             onClick = onIniciarClicked,
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
+            modifier = Modifier
+                .height(50.dp)
+                .padding(horizontal = 50.dp)
         ) {
-            Text("Iniciar", color = Color.White)
+            Text(
+                "Iniciar",
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                style = androidx.compose.ui.text.TextStyle(
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                modifier = Modifier
+                    .fillMaxSize()
+            )
         }
     }
 }
@@ -114,13 +152,15 @@ fun TelaLogin(authViewModel: AuthViewModel) {
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-
+    var passwordVisibility by remember { mutableStateOf(false) }
+    var snackbarText by remember { mutableStateOf("") }
+    var snackbarVisible by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 32.dp, bottom = 16.dp)
+            .fillMaxSize()
             .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = "MindMate - Login",
@@ -128,7 +168,119 @@ fun TelaLogin(authViewModel: AuthViewModel) {
             color = Color(0xFF004D40),
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp)
+
         )
+        TextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("Password") },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                val image = if (passwordVisibility)
+                    Icons.Filled.Visibility
+                else
+                    Icons.Filled.VisibilityOff
+
+                IconButton(onClick = { passwordVisibility = !passwordVisibility }) {
+                    Icon(image, "toggle password visibility")
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(
+            onClick = {
+                if(!email.contains("@")) {
+                    snackbarText = "Por favor, preencha o mail corretamente!"
+                    snackbarVisible = true
+                } else if (email.isBlank() || password.isBlank()) {
+                    snackbarText = "Por favor, preencha todos os campos!"
+                    snackbarVisible = true
+                }else {
+                    val emailExists = authViewModel.verificarEmailExistente(email)
+                    if (!emailExists) {
+                        snackbarText = "O email não existe no sistema!"
+                        snackbarVisible = true
+                    } else {
+                        authViewModel.verificarEmail(authViewModel, email, password)
+                    }
+                }
+            },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Login", color = Color.White)
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { authViewModel.navigateToRegister() },
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
+            modifier = Modifier.fillMaxWidth()
+        ){
+            Text("Ir para Registo", color = Color.White)
+        }
+        if (snackbarVisible) {
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                action = {
+                    Button(
+                        onClick = { snackbarVisible = false },
+                    ) {
+                        Text("Fechar")
+                    }
+                }
+            ) {
+                Text(snackbarText)
+            }
+        }
+    }
+
+}
+@Composable
+fun TelaRegisto(authViewModel: AuthViewModel) {
+    var nome by remember { mutableStateOf("") }
+    var apelido by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var snackbarText by remember { mutableStateOf("") }
+    var snackbarVisible by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "MindMate - Aplicativo de Suporte Mental",
+            style = MaterialTheme.typography.h4,
+            color = Color(0xFF004D40),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp)
+        )
+        TextField(
+            value = nome,
+            onValueChange = { nome = it },
+            label = { Text("Nome Próprio") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        TextField(
+            value = apelido,
+            onValueChange = { apelido = it },
+            label = { Text("Apelido") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
         TextField(
             value = email,
             onValueChange = { email = it },
@@ -144,71 +296,48 @@ fun TelaLogin(authViewModel: AuthViewModel) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Button(
-            onClick = { authViewModel.login(email, password) },
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
-            modifier = Modifier.fillMaxWidth()
+            onClick = {
+                if(!email.contains("@")) {
+                    snackbarText = "Por favor, preencha o email corretamente!"
+                    snackbarVisible = true
+                } else if (nome.isBlank() || apelido.isBlank() || email.isBlank() || password.isBlank()) {
+                    snackbarText = "Por favor, preencha todos os campos!"
+                    snackbarVisible = true
+                } else {
+                    authViewModel.register(nome, apelido, email, password)
+                }
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
         ) {
-            Text("Login", color = Color.White)
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { authViewModel.navigateToRegister() },
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
-            modifier = Modifier.fillMaxWidth()
-        ){
-            Text("Ir para Registro", color = Color.White)
-        }
-    }
-
-}
-
-@Composable
-fun TelaRegisto(authViewModel: AuthViewModel) {
-    var nome by remember { mutableStateOf("") }
-    var apelido by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = "MindMate - Aplicativo de Suporte Mental",
-            style = MaterialTheme.typography.h4,
-            color = Color(0xFF004D40),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 32.dp)
-        )
-        TextField(
-            value = nome,
-            onValueChange = { nome = it },
-            label = { Text("Nome Próprio") }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = apelido,
-            onValueChange = { apelido = it },
-            label = { Text("Apelido") }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        TextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") }
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { authViewModel.register(nome,apelido,email, password) }) {
-            Text("Registar")
+            Text("Registar", color = Color.White)
         }
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = { authViewModel.navigateToLogin() }) {
-            Text("Voltar Inicio")
+        Button(
+            onClick = { authViewModel.navigateToLogin() },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B))
+        ) {
+            Text("Voltar Inicio", color = Color.White)
+        }
+
+        if (snackbarVisible) {
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                action = {
+                    Button(
+                        onClick = { snackbarVisible = false },
+                    ) {
+                        Text("Fechar")
+                    }
+                }
+            ) {
+                Text(snackbarText)
+            }
         }
     }
 }
+
 
 @Composable
 fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit, onLogout: () -> Unit) {
@@ -308,7 +437,8 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
                 coroutineScope.launch(Dispatchers.IO) {
                     try {
                         Log.d("ChatGPTApp", "Fazendo chamada à API")
-
+                        val trace: Trace = FirebasePerformance.getInstance().newTrace("Chatgpt_Api_Request")
+                        trace.start()
                         // Usar a função createChatRequest para criar a requisição com base no inputText
                         val chatRequest = createChatRequest(inputText)
 
@@ -329,6 +459,7 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
                             val errorBody = response.errorBody()?.string() ?: "Erro desconhecido"
                             Log.e("ChatGPTApp", "Erro na resposta da API: $errorBody")
                         }
+                        trace.stop()
                     } catch (e: Exception) {
                         Log.e("ChatGPTApp", "Falha na chamada da API", e)
                     }
