@@ -77,9 +77,12 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
 
     //Coroutines para programação assíncrona
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.0")
     implementation("com.google.firebase:firebase-auth:22.3.1")
     implementation("com.google.firebase:firebase-perf-ktx:20.5.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+
+    // Adicione a dependência do Kotlin Coroutines Core
 
     //Teste
     testImplementation("junit:junit:4.13.2")
@@ -104,5 +107,7 @@ dependencies {
 
     // Import the BoM for the Firebase platform
     implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
+    // Adicione a dependência do Firebase Auth
+
 
 }

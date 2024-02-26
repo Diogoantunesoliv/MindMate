@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+
 class AuthViewModel : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Login)
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
@@ -29,6 +30,26 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
+    fun Mailexist(email: String, onComplete: (Boolean) -> Unit) {
+        TODO("Not yet implemented")
+    }
+    enum class PasswordStrength {
+        WEAK, MEDIUM, STRONG
+    }
+
+    fun checkPasswordStrength(password: String): PasswordStrength {
+        val containsLowerCase = password.any { it.isLowerCase() }
+        val containsUpperCase = password.any { it.isUpperCase() }
+        val containsDigit = password.any { it.isDigit() }
+        val containsSpecial = password.any { !it.isLetterOrDigit() }
+
+        return when {
+            password.length <= 8 -> PasswordStrength.WEAK
+            password.length < 12 && !(containsLowerCase && containsUpperCase && containsDigit && containsSpecial) -> PasswordStrength.MEDIUM
+            else -> PasswordStrength.STRONG
+        }
+    }
+
     fun register(nome: String, apelido: String, email: String, password: String) {
         viewModelScope.launch {
             firebaseAuth.createUserWithEmailAndPassword(email, password)

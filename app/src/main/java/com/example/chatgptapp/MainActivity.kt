@@ -36,26 +36,19 @@ import com.google.firebase.perf.metrics.Trace
 import com.google.firebase.perf.FirebasePerformance
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
-
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.Snackbar
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-
-
-
 
 class MainActivity : ComponentActivity() {
     private val authViewModel by viewModels<AuthViewModel>()
@@ -77,12 +70,9 @@ class MainActivity : ComponentActivity() {
                     TelaInicio {
                         mostrarTelaInicio = false
 
-                        // Obter a instância do FirebaseAnalytics e registrar o evento
                         val analytics = FirebaseAnalytics.getInstance(this@MainActivity)
                         analytics.logEvent("log_botao_clicado", null)
                     }
-
-
                 }
                 exibirTelaChatGPT -> {
                     TelaChatGPT { exibirTelaChatGPT = false }
@@ -146,7 +136,6 @@ fun TelaInicio(onIniciarClicked: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun TelaLogin(authViewModel: AuthViewModel) {
 
@@ -163,7 +152,7 @@ fun TelaLogin(authViewModel: AuthViewModel) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "MindMate - Login",
+            text = "Login",
             style = MaterialTheme.typography.h4,
             color = Color(0xFF004D40),
             textAlign = TextAlign.Center,
@@ -195,7 +184,6 @@ fun TelaLogin(authViewModel: AuthViewModel) {
                 }
             }
         )
-
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
@@ -206,13 +194,7 @@ fun TelaLogin(authViewModel: AuthViewModel) {
                     snackbarText = "Por favor, preencha todos os campos!"
                     snackbarVisible = true
                 }else {
-                    val emailExists = authViewModel.verificarEmailExistente(email)
-                    if (!emailExists) {
-                        snackbarText = "O email não existe no sistema!"
-                        snackbarVisible = true
-                    } else {
-                        authViewModel.verificarEmail(authViewModel, email, password)
-                    }
+                    authViewModel.login(email, password)
                 }
             },
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
@@ -220,12 +202,28 @@ fun TelaLogin(authViewModel: AuthViewModel) {
         ) {
             Text("Login", color = Color.White)
         }
-        Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = { authViewModel.navigateToRegister() },
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF00897B)),
             modifier = Modifier.fillMaxWidth()
         ){
             Text("Ir para Registo", color = Color.White)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = {
+
+                //authViewModel.loginWithGoogle()
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(Icons.Filled.AccountCircle, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Google")
+            }
         }
         if (snackbarVisible) {
             Snackbar(
@@ -252,6 +250,8 @@ fun TelaRegisto(authViewModel: AuthViewModel) {
     var password by remember { mutableStateOf("") }
     var snackbarText by remember { mutableStateOf("") }
     var snackbarVisible by remember { mutableStateOf(false) }
+    var passwordVisibility by remember { mutableStateOf(true) }
+    var passwordStrength by remember { mutableStateOf(AuthViewModel.PasswordStrength.WEAK) }
 
     Column(
         modifier = Modifier
@@ -290,10 +290,53 @@ fun TelaRegisto(authViewModel: AuthViewModel) {
         Spacer(modifier = Modifier.height(8.dp))
         TextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {
+                password = it
+                passwordStrength = authViewModel.checkPasswordStrength(it)
+            },
             label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth()
+            visualTransformation = if (passwordVisibility) VisualTransformation.None else PasswordVisualTransformation(),
+            modifier = Modifier.fillMaxWidth(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+            trailingIcon = {
+                val image = if (passwordVisibility)
+                    Icons.Filled.Visibility
+                else
+                    Icons.Filled.VisibilityOff
+
+                IconButton(onClick = { passwordVisibility = !passwordVisibility }) {
+                    Icon(image, "toggle password visibility")
+                }
+            }
         )
+        if (password.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                val barColor = when (passwordStrength) {
+                    AuthViewModel.PasswordStrength.WEAK -> Color.Red
+                    AuthViewModel.PasswordStrength.MEDIUM -> Color.Yellow
+                    AuthViewModel.PasswordStrength.STRONG -> Color.Green
+                }
+                val barPercentage = when (passwordStrength) {
+                    AuthViewModel.PasswordStrength.WEAK -> 0.33f
+                    AuthViewModel.PasswordStrength.MEDIUM -> 0.66f
+                    AuthViewModel.PasswordStrength.STRONG -> 1f
+                }
+
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp),
+                    backgroundColor = Color.LightGray,
+                    color = barColor,
+                    progress = barPercentage
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
         Button(
             onClick = {
@@ -338,7 +381,6 @@ fun TelaRegisto(authViewModel: AuthViewModel) {
     }
 }
 
-
 @Composable
 fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () -> Unit, onLogout: () -> Unit) {
     Column(
@@ -375,8 +417,6 @@ fun TelaInicialPosLogin(onNavigateToChatGPT: () -> Unit, onNavigateToDiario: () 
         }
     }
 }
-
-
 @Composable
 fun TelaChatGPT(onNavigateBack: () -> Unit) {
     var inputText by remember { mutableStateOf("") }
@@ -473,8 +513,6 @@ fun TelaChatGPT(onNavigateBack: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
     }
 }
-
-
 @Composable
 fun TelaDiario(onNavigateBack: () -> Unit) {
     data class Nota(val titulo: String, val mensagem: String)
